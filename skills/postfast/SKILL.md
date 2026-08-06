@@ -1,8 +1,8 @@
 ---
 name: postfast
-description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
+description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, read or reply to the comments on their posts (social inbox — TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
 homepage: https://postfa.st
-version: 1.14.0
+version: 1.15.0
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -492,6 +492,25 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 - **Follower history**: `GET /social-media/{id}/follower-history?from=&to=` → daily snapshots `{ series: [{ capturedAt, followerCount }], currentFollowerCount, delta, trackingStartedAt }`. Forward-only, default 90d, max 365d. Covers every platform except X and personal Facebook
 - **Place search (geotag)**: `GET /social-media/search-places?q=<text>` → returns `[{ id, name, link?, city?, country?, street?, zip?, pictureUrl? }]`. The `id` is a Facebook Page ID that works as BOTH `facebookPlaceId` (Facebook) and `instagramLocationId` (Instagram); `link` is the place's Facebook Page URL. `q` needs min 2 chars, returns up to 100 address-carrying Pages, cached 7 days. Rate limit: 90/hour
 - **Connect link**: `POST /social-media/connect-link` → returns `{ connectUrl }`. Let clients connect accounts without a PostFast account. Params: `expiryDays` (1-30, default 7), `sendEmail` (bool), `email` (required if sendEmail=true)
+
+## Social Inbox (Comments)
+
+Read and answer the comments on your connected accounts' posts — TikTok (Business connections), Instagram, Facebook Pages, and Threads — through the same API. Comments arrive within seconds of being posted, from the moment an account is connected onward (no history backfill). Comments only: the single DM-shaped action is the official Instagram private reply below. Included on every PostFast plan.
+
+**Conversations** group comments per post and carry `status` (`OPEN` | `SNOOZED` | `CLOSED`), `unreadCount`, `assignedToUserId`, and a **server-computed reply capability**: `canReply`, `maxReplyLength`, `windowState`, `disabledReason`. Always derive whether and how long you can reply from those fields — never from hardcoded platform rules. **Items** are the individual comments and replies, with `direction` (`INBOUND` | `OUTBOUND`), `state` (`VISIBLE` | `HIDDEN` | `DELETED`), author info, and on Instagram comments `canPrivateReply`.
+
+- **List conversations**: `GET /social-inbox/conversations?page=0&limit=20` — optional filters `platforms`, `socialMediaIds`, `statuses` (comma-separated), `unreadOnly`, `assignedToUserId`
+- **One conversation**: `GET /social-inbox/conversations/{id}`
+- **List items**: `GET /social-inbox/conversations/{conversationId}/items?page=0&limit=20&order=ASC` (`DESC` for newest first)
+- **Unread total**: `GET /social-inbox/unread-count`
+- **Reply**: `POST /social-inbox/items/{itemId}/reply` with `{ "text": "..." }` — respect the conversation's `canReply` and `maxReplyLength`
+- **Instagram private reply**: `POST /social-inbox/items/{itemId}/private-reply` with `{ "text": "..." }` — Instagram only, once per comment, within 7 days of the comment, up to ~1,000 bytes (emoji and non-Latin text count multiple); check the item's `canPrivateReply` first. Arrives as a DM and may land in the recipient's Message Requests folder
+- **Hide / unhide / delete**: `POST /social-inbox/items/{itemId}/state` with `{ "action": "HIDE" | "UNHIDE" | "DELETE" }` — acts on the platform itself; `DELETE` is irreversible (and not supported on Threads)
+- **Mark read**: `POST /social-inbox/conversations/{conversationId}/read`
+- **Set status**: `POST /social-inbox/conversations/{conversationId}/status` with `{ "status": "OPEN" | "SNOOZED" | "CLOSED" }`
+- **Assign**: `POST /social-inbox/conversations/{conversationId}/assign` with `{ "assigneeUserId": "..." }`
+
+`list_accounts` marks which accounts feed the inbox via `inboxCapable`. Facebook accounts connected before 2026-07-28 and Threads accounts connected before 2026-08-04 need one reconnect in the PostFast dashboard before comments flow. Replies you send appear exactly once — no duplicate when the platform reports the reply back. The same operations are exposed as MCP tools (`list_inbox_conversations`, `get_inbox_conversation`, `list_inbox_items`, `get_inbox_unread_count`, `reply_to_inbox_item`, `send_inbox_private_reply`, `set_inbox_item_state`, `mark_inbox_conversation_read`, `set_inbox_conversation_status`, `assign_inbox_conversation`) in `postfast-mcp` ≥0.3.0.
 
 ## Rate Limits
 
