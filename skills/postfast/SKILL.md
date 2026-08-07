@@ -2,7 +2,7 @@
 name: postfast
 description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, read or reply to the comments on their posts (social inbox — TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
 homepage: https://postfa.st
-version: 1.15.0
+version: 1.15.1
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -504,6 +504,7 @@ Read and answer the comments on your connected accounts' posts — TikTok (Busin
 - **List items**: `GET /social-inbox/conversations/{conversationId}/items?page=0&limit=20&order=ASC` (`DESC` for newest first)
 - **Unread total**: `GET /social-inbox/unread-count`
 - **Reply**: `POST /social-inbox/items/{itemId}/reply` with `{ "text": "..." }` — respect the conversation's `canReply` and `maxReplyLength`
+- **Duplicate guard**: repeating the same reply text across a workspace gets the next send rejected with a machine-readable error telling you to vary the wording — treat it as an instruction to rephrase, not a transient failure to retry. Reply sends are also rate-limited per workspace, so batch triage at a human pace
 - **Instagram private reply**: `POST /social-inbox/items/{itemId}/private-reply` with `{ "text": "..." }` — Instagram only, once per comment, within 7 days of the comment, up to ~1,000 bytes (emoji and non-Latin text count multiple); check the item's `canPrivateReply` first. Arrives as a DM and may land in the recipient's Message Requests folder
 - **Hide / unhide / delete**: `POST /social-inbox/items/{itemId}/state` with `{ "action": "HIDE" | "UNHIDE" | "DELETE" }` — acts on the platform itself; `DELETE` is irreversible (and not supported on Threads)
 - **Mark read**: `POST /social-inbox/conversations/{conversationId}/read`
