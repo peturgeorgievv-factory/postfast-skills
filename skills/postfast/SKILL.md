@@ -1,8 +1,8 @@
 ---
 name: postfast
-description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, read or reply to the comments on their posts (social inbox — TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
+description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, pick trending pre-cleared TikTok sounds for photo and carousel posts, read or reply to the comments on their posts (social inbox — TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
 homepage: https://postfa.st
-version: 1.15.1
+version: 1.16.0
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -472,7 +472,7 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 
 | Platform | Key Controls |
 |---|---|
-| **TikTok** | `tiktokTitle` (photo carousels, max 90), `tiktokAllowComments`, `tiktokAllowDuet`, `tiktokAllowStitch`, `tiktokIsDraft`, `tiktokIsAigc`, `tiktokBrandOrganic`, `tiktokBrandContent`, `tiktokAutoAddMusic`. `tiktokPrivacy` is **deprecated** (no-op) |
+| **TikTok** | `tiktokTitle` (photo carousels, max 90), `tiktokAllowComments`, `tiktokAllowDuet`, `tiktokAllowStitch`, `tiktokIsDraft`, `tiktokIsAigc`, `tiktokBrandOrganic`, `tiktokBrandContent`, `tiktokAutoAddMusic`, `tiktokMusicSoundId` (trending Commercial Music Library sound from the tiktok-sounds helper below — photo/carousel posts on Business-API accounts ONLY; mutually exclusive with `tiktokAutoAddMusic`, sending both is rejected; not applied when `tiktokIsDraft` is true), `tiktokMusicSoundName` (display label for the chosen sound, set it whenever the id is set). `tiktokPrivacy` is **deprecated** (no-op) |
 | **Instagram** | `instagramPublishType` (TIMELINE/STORY/REEL), `instagramPostToGrid`, `instagramCollaborators`, `instagramTrialReelStrategy`, `instagramLocationId`, `instagramLocationName` |
 | **Facebook** | `facebookContentType` (POST/REEL/STORY), `facebookReelsCollaborators`, `facebookPlaceId`, `facebookPlaceName`, `facebookTargetCountries` |
 | **YouTube** | `youtubeIsShort`, `youtubeTitle`, `youtubePrivacy`, `youtubePlaylistId`, `youtubeTags`, `youtubeMadeForKids`, `youtubeCategoryId`, `youtubeThumbnailKey` |
@@ -492,6 +492,7 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 - **Follower history**: `GET /social-media/{id}/follower-history?from=&to=` → daily snapshots `{ series: [{ capturedAt, followerCount }], currentFollowerCount, delta, trackingStartedAt }`. Forward-only, default 90d, max 365d. Covers every platform except X and personal Facebook
 - **Place search (geotag)**: `GET /social-media/search-places?q=<text>` → returns `[{ id, name, link?, city?, country?, street?, zip?, pictureUrl? }]`. The `id` is a Facebook Page ID that works as BOTH `facebookPlaceId` (Facebook) and `instagramLocationId` (Instagram); `link` is the place's Facebook Page URL. `q` needs min 2 chars, returns up to 100 address-carrying Pages, cached 7 days. Rate limit: 90/hour
 - **Connect link**: `POST /social-media/connect-link` → returns `{ connectUrl }`. Let clients connect accounts without a PostFast account. Params: `expiryDays` (1-30, default 7), `sendEmail` (bool), `email` (required if sendEmail=true)
+- **TikTok trending sounds**: `GET /social-media/{id}/tiktok-sounds?genre=&countryCode=&dateRange=` → up to 100 trending pre-cleared Commercial Music Library tracks `[{ musicSoundId, name, artist, duration, thumbnailUrl, previewUrl, rankPosition, genres, ... }]` (`previewUrl` plays exactly what gets attached). TikTok **Business-API connections only** — consumer-connected accounts error with `tiktokMusic.requiresBusinessApi` (the account must be reconnected). `genre` takes raw TikTok values like `POP`, `HIP_HOP/RAP`, `R&B/SOUL`, `K-POP` (an invalid value 400s with the full valid list in the message); `countryCode` = 2-letter uppercase, default US (an unknown code returns an empty list); `dateRange` = `1DAY | 7DAY | 30DAY | 90DAY`, default 7DAY. The list rotates daily — fetch fresh instead of reusing old ids. Use a result's `musicSoundId` as `tiktokMusicSoundId` in create_posts controls (plus `tiktokMusicSoundName` for the label)
 
 ## Social Inbox (Comments)
 
@@ -526,6 +527,7 @@ Read and answer the comments on your connected accounts' posts — TikTok (Busin
 
 **Platform limits:**
 - X (Twitter) via API: **5 posts per account per day** — do not exceed this
+- TikTok sounds: `tiktokMusicSoundId` and `tiktokAutoAddMusic` are mutually exclusive (sending both is rejected), and sound ids rotate daily — fetch a fresh list from the tiktok-sounds helper per session instead of reusing stored ids
 
 Check `X-RateLimit-Remaining-*` headers. 429 = rate limited, check `Retry-After-*` header. For batch operations, add a 1-second delay between API calls.
 

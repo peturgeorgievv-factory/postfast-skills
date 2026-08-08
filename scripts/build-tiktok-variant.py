@@ -52,7 +52,7 @@ MOVE = {
 
 FRONTMATTER = '''---
 name: "{name}"
-description: "Use this Skill to schedule and publish TikTok posts (videos, photo carousels, TikTok app drafts) and manage the comments on them, alongside 10 more platforms: Instagram, Facebook, X, YouTube, LinkedIn, Threads, Pinterest, Bluesky, Telegram, and Google Business Profile. Covers post creation with platform-specific controls, media upload, the Social Inbox (read, reply to, hide, and triage comments on your own posts, including TikTok Business accounts), analytics, and follower history, all through the PostFast API. Use when a user wants to schedule social media posts, cross-post content, reply to comments, check post performance, or automate their posting workflow. PostFast is a SaaS tool; requires a PostFast workspace API key. Works on every plan including the 7-day free trial."
+description: "Use this Skill to schedule and publish TikTok posts (videos, photo carousels, TikTok app drafts), attach trending pre-cleared Commercial Music Library sounds to them, and manage the comments they receive, alongside 10 more platforms: Instagram, Facebook, X, YouTube, LinkedIn, Threads, Pinterest, Bluesky, Telegram, and Google Business Profile. Covers post creation with platform-specific controls, trending TikTok sound selection, media upload, the Social Inbox (read, reply to, hide, and triage comments on your own posts, including TikTok Business accounts), analytics, and follower history, all through the PostFast API. Use when a user wants to schedule social media posts, cross-post content, reply to comments, check post performance, or automate their posting workflow. PostFast is a SaaS tool; requires a PostFast workspace API key. Works on every plan including the 7-day free trial."
 version: "{version}"
 author: "Kohi Solutions Ltd (PostFast)"
 use_case: "Content publishing and comment management"
@@ -72,6 +72,7 @@ TOP_GOTCHAS = """
 - status=SCHEDULED requires a future `scheduledAt`; DRAFT must omit it. There is no instant publish: schedule a few minutes ahead.
 - Media is required (even for drafts) on TikTok, YouTube, Instagram, Pinterest, and Google Business Profile; `mediaItems[].type` must match the file type.
 - Inbox replies: derive reply ability from each conversation's server-computed `canReply`/`maxReplyLength`, never from assumed platform rules; repeated identical replies are rejected with a vary-the-wording error (rephrase, do not retry).
+- TikTok sounds: `tiktokMusicSoundId` (from `GET /social-media/{id}/tiktok-sounds`, see references/helper-endpoints.md) and `tiktokAutoAddMusic` are mutually exclusive; sound ids rotate daily, fetch fresh per session; Business-API-connected TikTok accounts only.
 """
 
 SUPPORTING = """
