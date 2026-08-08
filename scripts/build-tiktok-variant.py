@@ -11,7 +11,7 @@ the canonical skill:
     Media Specs, a top-5 gotchas digest, and a Supporting Files index
   - moves to references/: Common Patterns, Platform-Specific Controls, Helper
     Endpoints, Common Gotchas, Troubleshooting, Quick Reference, Tips for the Agent
-  - swaps frontmatter for the TikTok one (name: postfast-social-publishing-inbox
+  - swaps frontmatter for the TikTok one (name: postfast-social-media-management
     — PERMANENT on the portal, never change it without deleting the listing)
   - writes the TikTok-required README.md (incl. the mandatory disclosure that we
     do NOT use the TikTok for Business MCP Server)
@@ -21,7 +21,7 @@ Update flow (see agent-hub memory reference_tiktok_agentic_hub):
   1. Edit the canonical skill, publish to ClawHub, git push (normal loop).
   2. Run:  python3 scripts/build-tiktok-variant.py [version] [outdir]
      e.g.  python3 scripts/build-tiktok-variant.py 1.16.0 /tmp/shared
-     Zip name auto-bumps: postfast-social-publishing-inbox-skill-v<major>.zip
+     Zip name auto-bumps: postfast-social-media-management-skill-v<major>.zip
      per TikTok's rule "for subsequent updates, only change the version number".
   3. TT4B portal -> My Skills -> the skill -> upload new file version with the
      bumped semver + a Version Note. File updates re-enter review (5-7 business
@@ -35,7 +35,7 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "skills", "postfast")
-SKILL_NAME = "postfast-social-publishing-inbox"  # PERMANENT portal Skill Name
+SKILL_NAME = "postfast-social-media-management"  # PERMANENT portal Skill Name
 
 KEEP = ["Setup", "Core Workflow", "Social Inbox (Comments)", "Rate Limits",
         "Media Specs Quick Reference"]
