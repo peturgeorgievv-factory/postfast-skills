@@ -2,7 +2,7 @@
 name: postfast
 description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, pick trending pre-cleared TikTok sounds for photo and carousel posts, read or reply to the comments on their posts (social inbox — TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
 homepage: https://postfa.st
-version: 1.16.0
+version: 1.16.1
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -498,7 +498,7 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 
 Read and answer the comments on your connected accounts' posts — TikTok (Business connections), Instagram, Facebook Pages, and Threads — through the same API. Comments arrive within seconds of being posted, from the moment an account is connected onward (no history backfill). Comments only: the single DM-shaped action is the official Instagram private reply below. Included on every PostFast plan.
 
-**Conversations** group comments per post and carry `status` (`OPEN` | `SNOOZED` | `CLOSED`), `unreadCount`, `assignedToUserId`, and a **server-computed reply capability**: `canReply`, `maxReplyLength`, `windowState`, `disabledReason`. Always derive whether and how long you can reply from those fields — never from hardcoded platform rules. **Items** are the individual comments and replies, with `direction` (`INBOUND` | `OUTBOUND`), `state` (`VISIBLE` | `HIDDEN` | `DELETED`), author info, and on Instagram comments `canPrivateReply`.
+**Conversations** group comments per post and carry `status` (`OPEN` | `SNOOZED` | `CLOSED`), `unreadCount`, `assignedToUserId`, and a **server-computed reply capability**: `canReply`, `maxReplyLength`, `windowState`, `disabledReason`. Always derive whether and how long you can reply from those fields — never from hardcoded platform rules. Each conversation also includes `postPreview` with the post's `caption`, `thumbnailUrl`, and, when available, its public `permalink` (every field individually optional; use the permalink to link the user straight to the post on the platform — currently null on Instagram). **Items** are the individual comments and replies, with `direction` (`INBOUND` | `OUTBOUND`), `state` (`VISIBLE` | `HIDDEN` | `DELETED`), author info, and on Instagram comments `canPrivateReply`.
 
 - **List conversations**: `GET /social-inbox/conversations?page=0&limit=20` — optional filters `platforms`, `socialMediaIds`, `statuses` (comma-separated), `unreadOnly`, `assignedToUserId`
 - **One conversation**: `GET /social-inbox/conversations/{id}`
