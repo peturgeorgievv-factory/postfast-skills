@@ -1,8 +1,8 @@
 ---
 name: postfast
-description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, pick trending pre-cleared TikTok sounds for photo and carousel posts, read or reply to the comments on their posts (social inbox — TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
+description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, pick trending pre-cleared TikTok sounds for photo and carousel posts, read or reply to the comments on their posts (social inbox — TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, generate a connect link so an agency client or their own app's user can connect accounts without a PostFast account, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
 homepage: https://postfa.st
-version: 1.16.1
+version: 1.17.0
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -131,10 +131,25 @@ Let clients connect their social accounts to your workspace without creating a P
 curl -X POST https://api.postfa.st/social-media/connect-link \
   -H "pf-api-key: $POSTFAST_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "expiryDays": 7, "sendEmail": true, "email": "client@example.com" }'
+  -d '{
+    "expiryDays": 7,
+    "platforms": ["INSTAGRAM"],
+    "redirectUrl": "https://yourapp.com/onboarding/social-connected",
+    "externalId": "tenant-42",
+    "sendEmail": true,
+    "email": "client@example.com"
+  }'
 ```
 
 Returns `{ "connectUrl": "https://app.postfa.st/connect?token=..." }`. Share the URL — they can connect accounts directly. Rate limit: 50/hour.
+
+Everything but `expiryDays` is optional:
+
+- `platforms` restricts which of the 11 the link offers — omit it to offer all of them, and never send an empty array (rejected). The scope is baked into the link's token and enforced server-side, so a scoped link cannot connect any other platform.
+- `redirectUrl` makes the connect page offer a `Return to <your host>` button once connecting finishes, carrying `status` (`success` or `error`), plus `platform` and `accountId` on success or `message` on error, plus your `externalId`. `accountId` is the same id `my-social-accounts` returns, so it is the completion signal: there is no webhook and no need to poll and diff. https only (`http` is accepted on `localhost` / `127.0.0.1` / `[::1]`), max 2000 chars, no credentials in the URL.
+- `externalId` is your own reference — a tenant or user id — echoed back unchanged on that return URL. Max 128 chars, `A-Za-z0-9-._~:@` only.
+
+The same fields exist as `generate_connect_link` MCP tool arguments in `postfast-mcp` ≥ 0.6.0.
 
 ### 8. Create a draft post
 
@@ -491,7 +506,7 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 - **GBP locations**: `GET /social-media/{id}/gbp-locations` → returns `[{ id, locationId, title, address, mapsUri }]`. Use `locationId` as `gbpLocationId` in controls
 - **Follower history**: `GET /social-media/{id}/follower-history?from=&to=` → daily snapshots `{ series: [{ capturedAt, followerCount }], currentFollowerCount, delta, trackingStartedAt }`. Forward-only, default 90d, max 365d. Covers every platform except X and personal Facebook
 - **Place search (geotag)**: `GET /social-media/search-places?q=<text>` → returns `[{ id, name, link?, city?, country?, street?, zip?, pictureUrl? }]`. The `id` is a Facebook Page ID that works as BOTH `facebookPlaceId` (Facebook) and `instagramLocationId` (Instagram); `link` is the place's Facebook Page URL. `q` needs min 2 chars, returns up to 100 address-carrying Pages, cached 7 days. Rate limit: 90/hour
-- **Connect link**: `POST /social-media/connect-link` → returns `{ connectUrl }`. Let clients connect accounts without a PostFast account. Params: `expiryDays` (1-30, default 7), `sendEmail` (bool), `email` (required if sendEmail=true)
+- **Connect link**: `POST /social-media/connect-link` → returns `{ connectUrl }`. Let clients connect accounts without a PostFast account. Params: `expiryDays` (1-30, default 7), `platforms` (string[], restricts which platforms the link offers — omit for all 11, empty array rejected, enforced server-side), `redirectUrl` (https except `http` on localhost, max 2000 chars — the connect page then offers a return button carrying `status`, `platform`, `accountId`, `externalId`), `externalId` (your own reference, max 128 chars, `A-Za-z0-9-._~:@`), `sendEmail` (bool), `email` (required if sendEmail=true)
 - **TikTok trending sounds**: `GET /social-media/{id}/tiktok-sounds?genre=&countryCode=&dateRange=` → up to 100 trending pre-cleared Commercial Music Library tracks `[{ musicSoundId, name, artist, duration, thumbnailUrl, previewUrl, rankPosition, genres, ... }]` (`previewUrl` plays exactly what gets attached). TikTok **Business-API connections only** — consumer-connected accounts error with `tiktokMusic.requiresBusinessApi` (the account must be reconnected). `genre` takes raw TikTok values like `POP`, `HIP_HOP/RAP`, `R&B/SOUL`, `K-POP` (an invalid value 400s with the full valid list in the message); `countryCode` = 2-letter uppercase, default US (an unknown code returns an empty list); `dateRange` = `1DAY | 7DAY | 30DAY | 90DAY`, default 7DAY. The list rotates daily — fetch fresh instead of reusing old ids. Use a result's `musicSoundId` as `tiktokMusicSoundId` in create_posts controls (plus `tiktokMusicSoundName` for the label)
 
 ## Social Inbox (Comments)
@@ -701,7 +716,7 @@ GET /social-posts/analytics?startDate=...&endDate=...&platforms=...
 GET /social-media/:id/follower-history?from=...&to=...
 
 # Connect link (for clients)
-POST /social-media/connect-link  { expiryDays?, sendEmail?, email? }
+POST /social-media/connect-link  { expiryDays?, platforms?, redirectUrl?, externalId?, sendEmail?, email? }
 ```
 
 ## Tips for the Agent

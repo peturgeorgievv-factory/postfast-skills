@@ -301,19 +301,25 @@ Fires only when scheduling (`status: SCHEDULED` or `scheduledAt` set). **Drafts 
 
 ### POST /social-media/connect-link
 
-Generate a secure link for clients to connect their social accounts to your workspace — no PostFast account required. Rate limit: 50/hour.
+Generate a secure link for clients to connect their social accounts to your workspace — no PostFast account required. Can be scoped to specific platforms and return the user to your own app when done. Rate limit: 50/hour.
 
 **Request:**
 ```json
 {
   "expiryDays": 7,
+  "platforms": ["INSTAGRAM"],
+  "redirectUrl": "https://yourapp.com/onboarding/social-connected",
+  "externalId": "tenant-42",
   "sendEmail": true,
   "email": "client@example.com"
 }
 ```
 
 - `expiryDays` (int, optional): 1-30, default 7
-- `sendEmail` (bool, optional): Send link via email, default false
+- `platforms` (string[], optional): Restrict the link to these platforms. Omit to offer all 11; an empty array is rejected. Values are the same platform names `my-social-accounts` returns (`TIKTOK`, `INSTAGRAM`, `FACEBOOK`, `X`, `LINKEDIN`, `YOUTUBE`, `BLUESKY`, `THREADS`, `PINTEREST`, `TELEGRAM`, `GOOGLE_BUSINESS_PROFILE`). The scope is carried inside the link's token and enforced server-side, so a scoped link cannot connect any other platform
+- `redirectUrl` (string, optional): Where the connect page offers to send the user when connecting finishes. https only, except `http` on `localhost` / `127.0.0.1` / `[::1]`; max 2000 chars; a URL carrying credentials is rejected
+- `externalId` (string, optional): Your own reference, echoed back unchanged on the return URL. Max 128 chars, `A-Za-z0-9-._~:@` only
+- `sendEmail` (bool, optional): Send link via email, default false. Delivery is best effort — a send failure still returns a link
 - `email` (string): Required when `sendEmail` is true
 
 **Response:**
@@ -322,6 +328,18 @@ Generate a secure link for clients to connect their social accounts to your work
 ```
 
 Share the `connectUrl` with the client. The token is a JWT — do not truncate it.
+
+**Return URL:** when `redirectUrl` is set, the connect page offers a `Return to <your host>` button carrying `status` (`success` or `error`), plus `platform` and `accountId` on success or `message` on error, plus your `externalId`. `accountId` is the same id `GET /social-media/my-social-accounts` returns, so it is the completion signal: there is no webhook, and no need to poll and diff. Facebook and LinkedIn offer the button after the page step; Bluesky and Telegram connect in the page and do not offer it.
+
+**Connect link validation errors (`400`):** the `message` field carries a stable code.
+
+| Situation | `message` code |
+|---|---|
+| `redirectUrl` is not https (and not loopback `http`) | `connectLink.redirectUrlNotHttps` |
+| `redirectUrl` is otherwise unusable, e.g. it carries credentials | `connectLink.redirectUrlInvalid` |
+| `externalId` uses characters outside `A-Za-z0-9-._~:@` | `connectLink.externalIdInvalid` |
+
+Enum and length violations fail class-validator first, so those come back as a `message` **array** instead of a code: `"platforms should not be empty"`, `"each value in platforms must be one of the following values: ..."`, `"externalId must be shorter than or equal to 128 characters"`, `"redirectUrl must be shorter than or equal to 2000 characters"`.
 
 ### DELETE /social-posts/:id
 
