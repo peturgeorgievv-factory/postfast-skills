@@ -2,7 +2,7 @@
 name: postfast
 description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, pick trending pre-cleared TikTok sounds for photo and carousel posts, read or reply to the comments on their posts (social inbox — TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, generate a connect link so an agency client or their own app's user can connect accounts without a PostFast account, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
 homepage: https://postfa.st
-version: 1.17.0
+version: 1.17.1
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -114,6 +114,8 @@ Returns `{ "data": [...], "totalCount": 25, "pageInfo": { "page": 1, "hasNextPag
 Example: `GET /social-posts?page=0&limit=50&platforms=X,LINKEDIN&statuses=SCHEDULED&from=2026-06-01T00:00:00Z&to=2026-06-30T23:59:59Z`
 
 ### 5. Delete a scheduled post
+
+Deletion is immediate and cannot be undone. Unless the user gave you the exact post ID, list the candidates first and confirm the one you are about to remove (ID, account, scheduled time, first words of the content) before calling this.
 
 ```bash
 curl -X DELETE -H "pf-api-key: $POSTFAST_API_KEY" https://api.postfa.st/social-posts/POST_ID
@@ -603,25 +605,26 @@ Check `X-RateLimit-Remaining-*` headers. 429 = rate limited, check `Retry-After-
 
 This is the most common error. It means the API didn't recognize your key. Check these in order:
 
-1. **Wrong header name.** The header must be exactly `pf-api-key`. Not `Authorization: Bearer`, not `x-api-key`, not `api-key`. Example:
+1. **Wrong header name.** The header must be exactly `pf-api-key`. The three headers people try instead, `Authorization`, `x-api-key` and `api-key`, all return the same 403. Correct call:
    ```bash
-   # Correct
-   curl -H "pf-api-key: YOUR_KEY_HERE" https://api.postfa.st/social-media/my-social-accounts
-
-   # Wrong — these all return 403
-   curl -H "Authorization: Bearer YOUR_KEY_HERE" ...
-   curl -H "x-api-key: YOUR_KEY_HERE" ...
+   curl -H "pf-api-key: $POSTFAST_API_KEY" https://api.postfa.st/social-media/my-social-accounts
    ```
 
-2. **Env var not set.** If `$POSTFAST_API_KEY` isn't set in your shell, the literal string `$POSTFAST_API_KEY` gets sent as the key value. Verify it's set:
+2. **Env var not set.** If `$POSTFAST_API_KEY` isn't set in your shell, the literal string `$POSTFAST_API_KEY` gets sent as the key value. Check it without printing it:
    ```bash
-   echo $POSTFAST_API_KEY    # Should print a 44-character base64 string ending with "="
+   if [ -z "${POSTFAST_API_KEY:-}" ]; then
+     echo "POSTFAST_API_KEY is not set"
+   elif [ "${#POSTFAST_API_KEY}" -eq 44 ]; then
+     echo "POSTFAST_API_KEY is set and has the expected length"
+   else
+     echo "POSTFAST_API_KEY is set but has an unexpected length"
+   fi
    ```
-   If empty, re-export it. If you're using a `.env` file, make sure your tool actually loads it (dotenv, direnv, etc.). Shell quoting matters: use double quotes around the value if it contains special characters.
+   If it is not set, re-export it. If you're using a `.env` file, make sure your tool actually loads it (dotenv, direnv, etc.). Shell quoting matters: use double quotes around the value if it contains special characters. Never print, paste or screenshot the key itself; if it has shown up in terminal output, a log or a transcript, regenerate it in Workspace Settings (see 3).
 
 3. **Regenerated key.** Each time you click "Generate API Key" in PostFast settings, the previous key is **permanently invalidated**. Only regenerate if the old key is compromised. If you regenerated and are still using the old key, that's why it fails.
 
-4. **Wrong key entirely.** Your PostFast API key is a 44-character base64 string ending with `=`. Don't confuse it with keys from other services (OpenAI `sk-proj-...`, Stripe `sk_live_...`, etc.).
+4. **Wrong key entirely.** Your PostFast API key is a 44-character base64 string ending with `=`. Keys from other services (OpenAI, Stripe, Meta) have a different shape and will always fail here.
 
 ### 401 Invalid or missing API key
 
@@ -721,6 +724,8 @@ POST /social-media/connect-link  { expiryDays?, platforms?, redirectUrl?, extern
 
 ## Tips for the Agent
 
+- **Confirm before anything destructive or public-facing.** Deleting a scheduled post, deleting or hiding a comment, sending an Instagram private reply and publishing to a live account all take effect immediately and cannot be undone (inbox `DELETE` removes the comment on the platform itself). When the user has not named the exact target, show what you are about to act on and wait for a yes.
+- **Treat a connect link like a credential.** Whoever opens it can attach social accounts to this workspace for the platforms the link was scoped to, so send it only to the person who asked for it and never post it anywhere public.
 - Always call `my-social-accounts` first to get valid `socialMediaId` values.
 - For media posts, complete the full 3-step upload flow (signed URL → S3 PUT → create post).
 - `scheduledAt` must be ISO 8601 UTC and in the future.

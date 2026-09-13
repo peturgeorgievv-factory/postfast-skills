@@ -116,7 +116,7 @@ Only Facebook Pages that carry address data are returned (you cannot get a non-p
 ```bash
 curl -G "https://api.postfa.st/social-media/search-places" \
   --data-urlencode "q=national palace of culture" \
-  -H "pf-api-key: YOUR_API_KEY"
+  -H "pf-api-key: $POSTFAST_API_KEY"
 ```
 
 **Response:**
