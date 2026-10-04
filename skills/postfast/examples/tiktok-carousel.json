@@ -12,6 +12,7 @@
     }
   ],
   "controls": {
-    "tiktokAllowComments": true
+    "tiktokAllowComments": true,
+    "tiktokAutoAddMusic": true
   }
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the TikTok Agentic Hub variant of the PostFast skill.
 
-The canonical skill (skills/postfast/SKILL.md, ~43k chars) exceeds TikTok's
+The canonical skill (skills/postfast/SKILL.md, ~68k chars) exceeds TikTok's
 15,000-20,000 character guideline for SKILL.md, and TikTok additionally requires
 a README.md at the zip root plus a frontmatter `name` that matches the portal's
 permanent Skill Name. This script derives a conforming package WITHOUT touching
@@ -68,9 +68,11 @@ TOP_GOTCHAS = """
 ## Top Gotchas (full list in references/gotchas.md)
 
 - Auth header is `pf-api-key`, NOT `Authorization: Bearer` or `x-api-key`. Regenerating a key permanently invalidates the old one.
-- X (Twitter) via API: hard platform limit of 5 posts per account per day. Do not exceed it.
+- X (Twitter): 6 posts per account per day (9 on Pro and Enterprise) under PostFast's Fair Usage Policy, plus a plan-based daily pool for the organization and a monthly allowance of posts with links.
 - status=SCHEDULED requires a future `scheduledAt`; DRAFT must omit it. There is no instant publish: schedule a few minutes ahead.
-- Media is required (even for drafts) on TikTok, YouTube, Instagram, Pinterest, and Google Business Profile; `mediaItems[].type` must match the file type.
+- Media is required (even for drafts) on TikTok, YouTube, Instagram, and Pinterest; `mediaItems[].type` must match the file type.
+- Rate limits are per endpoint; on a 429 wait `Retry-After` seconds, because calls made while blocked still count.
+- Deleting a post (one, or up to 100 via `POST /social-posts/bulk-delete`) removes it from PostFast only; a published post stays live on the platform. Confirm with the user first.
 - Inbox replies: derive reply ability from each conversation's server-computed `canReply`/`maxReplyLength`, never from assumed platform rules; repeated identical replies are rejected with a vary-the-wording error (rephrase, do not retry).
 - TikTok sounds: `tiktokMusicSoundId` (from `GET /social-media/{id}/tiktok-sounds`, see references/helper-endpoints.md) and `tiktokAutoAddMusic` are mutually exclusive; sound ids rotate daily, fetch fresh per session; Business-API-connected TikTok accounts only.
 """
@@ -117,14 +119,14 @@ Agent-agnostic. Tested with Claude (Claude Code, Claude Desktop), ChatGPT, Curso
 ## Limitations and caveats
 
 - The Social Inbox covers comments on your own posts (TikTok Business accounts, Instagram, Facebook Pages, Threads). It is not a DM inbox.
-- X (Twitter) posting via API is limited by the platform to 5 posts per account per day.
-- Media is required on TikTok, YouTube, Instagram, Pinterest, and Google Business Profile, even for drafts.
-- All write operations are rate-limited per workspace, and repeated identical replies are rejected server-side with an instruction to vary the wording (anti-spam guard).
+- PostFast's Fair Usage Policy caps daily posts per social account (for example TikTok 15, Instagram 35, X 6 or 9 depending on the plan).
+- Media is required on TikTok, YouTube, Instagram, and Pinterest, even for drafts.
+- Every endpoint is rate-limited per API key, and repeated identical replies are rejected server-side with an instruction to vary the wording (anti-spam guard).
 
 ## Common errors and troubleshooting
 
 - 403 on every call: wrong auth header. Use `pf-api-key`, not `Authorization: Bearer`.
-- 429: rate limited; check the `Retry-After-*` headers and space batch calls ~1 second apart.
+- 429: that endpoint's limit is reached; wait the number of seconds in the `Retry-After` header (calls made while blocked still count).
 - A post stays unpublished: the account's `connectionStatus` is probably DISABLED; reconnect it in the PostFast dashboard.
 - More: `references/troubleshooting.md` in this package, and https://postfa.st/docs.
 

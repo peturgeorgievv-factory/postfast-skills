@@ -37,7 +37,7 @@ clawhub install @peturgeorgievv/postfast
 export POSTFAST_API_KEY="your-api-key"
 ```
 
-The skill teaches your agent the full PostFast API: scheduling, cross-posting, media uploads, drafts, analytics (including video watch time and Instagram save rate), follower history, and client connect links.
+The skill teaches your agent the full PostFast API: scheduling, cross-posting, media uploads, drafts, listing posts by account, platform, status or date, deleting posts one at a time or up to 100 per call, analytics (including video watch time and Instagram save rate), follower history, TikTok trending sounds, the Social Inbox for comments, client connect links, and the per-endpoint rate limits.
 
 ## What's inside
 
@@ -45,7 +45,7 @@ The skill teaches your agent the full PostFast API: scheduling, cross-posting, m
 skills/postfast/
 ├── SKILL.md          # The skill: full API workflow instructions
 ├── references/       # API reference, platform controls, media specs, upload flow
-└── examples/         # 29 ready-to-use request examples
+└── examples/         # 31 ready-to-use request examples
 ```
 
 ## Guides
