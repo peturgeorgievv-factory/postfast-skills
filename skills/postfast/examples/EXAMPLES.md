@@ -8,7 +8,7 @@ Ready-to-use request bodies for common social media scheduling scenarios.
 |------|-------------|
 | [cross-platform-post.json](cross-platform-post.json) | Post same content to LinkedIn, X, and Threads |
 | [tiktok-video.json](tiktok-video.json) | TikTok video with brand and interaction settings |
-| [tiktok-carousel.json](tiktok-carousel.json) | TikTok image carousel (2-35 images) with TikTok-picked background music (`tiktokAutoAddMusic`, photo posts only) |
+| [tiktok-carousel.json](tiktok-carousel.json) | TikTok image carousel (up to 10 images) with TikTok-picked background music (`tiktokAutoAddMusic`, photo posts only) |
 | [tiktok-aigc-video.json](tiktok-aigc-video.json) | TikTok AI-generated video with AIGC label |
 | [draft-post.json](draft-post.json) | **PostFast draft** (any platform): `status: "DRAFT"` + no `scheduledAt`. Saved in PostFast, scheduled later by the user. |
 | [tiktok-app-draft.json](tiktok-app-draft.json) | **TikTok app draft** (`tiktokIsDraft: true`): pushes the post to the TikTok app's draft inbox. Different from a PostFast draft: it still needs `scheduledAt`. |

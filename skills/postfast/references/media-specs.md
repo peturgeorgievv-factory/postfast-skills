@@ -26,7 +26,7 @@ Any other content type returns `400` from `POST /file/get-signed-upload-urls`.
 ### TikTok
 - **Video**: MP4/MOV, H.264, ≤250MB, 3s-10min, best 15-30s
 - **Dimensions**: 1080×1920 (9:16) recommended
-- **Carousels**: 2-35 images (photo slideshows)
+- **Carousels**: up to 10 images per photo post (TikTok itself allows 35; PostFast takes 10)
 - **Caption**: max 2,200 characters
 - **No standalone images**: images only in carousels
 - **Cover**: `coverTimestamp` only (milliseconds). No custom cover image upload

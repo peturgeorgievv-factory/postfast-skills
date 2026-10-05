@@ -2,7 +2,7 @@
 name: postfast
 description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts (filtered by account, platform, status or date), delete posts one at a time or up to 100 per call, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, pick trending pre-cleared TikTok sounds for photo and carousel posts, read or reply to the comments on their posts (social inbox on TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, generate a connect link so an agency client or their own app's user can connect accounts without a PostFast account, or automate their social media workflow. PostFast is a SaaS tool, no self-hosting required.
 homepage: https://postfa.st
-version: 1.18.0
+version: 1.18.1
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -645,11 +645,11 @@ These limits can change; https://postfa.st/fair-usage is the source of truth. Wa
 
 ## Media Specs Quick Reference
 
-Upload caps for every platform: 250MB per video (Bluesky 100MB, Telegram 50MB), 10MB per image, 60MB per document.
+Upload caps for every platform: 250MB per video (Bluesky 100MB, Telegram 50MB), 10MB per image, 60MB per document. No post carries more than 10 media items, on any platform.
 
 | Platform | Images | Video | Carousel |
 |---|---|---|---|
-| TikTok | Carousels only | 1 video, MP4/MOV, 3s-10min | 2-35 images |
+| TikTok | Carousels only | 1 video, MP4/MOV, 3s-10min | Up to 10 images (TikTok itself allows 35; PostFast takes 10) |
 | Instagram | JPEG/PNG | 1 video; Reels 3-90s | Up to 10, images and videos mixed |
 | Facebook | JPG/PNG | 1 per post | Up to 10 images (no mixing with video) |
 | YouTube | — | 1 video; Shorts under 3min, H.264 | — |
@@ -667,7 +667,7 @@ Upload caps for every platform: 250MB per video (Bluesky 100MB, Telegram 50MB), 
 2. **Media MUST go through 3-step upload**: No external URLs. Always: get signed URL → PUT to S3 → use the `key` in `mediaItems`.
 3. **`scheduledAt` must be in the future**: ISO 8601 UTC format. Past dates return 400.
 4. **Pinterest ALWAYS requires `pinterestBoardId`**: Fetch boards first with `GET /social-media/{id}/pinterest-boards`.
-5. **TikTok requires video for standard posts**: Images only work in carousels (2-35 images).
+5. **TikTok requires video for standard posts**: Images only work in photo carousels, up to 10 images per post (TikTok allows 35, PostFast takes 10).
 6. **LinkedIn documents use `linkedinAttachmentKey`**: NOT `mediaItems`. Set `mediaItems: []` when posting documents.
 7. **Content-Type on S3 PUT must match**: The `Content-Type` header in your S3 PUT must match what you requested in `get-signed-upload-urls`.
 8. **Instagram Reels need video 3-90 seconds**: Outside this range returns an error.

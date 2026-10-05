@@ -21,7 +21,7 @@ All controls are passed in the `controls` object of `POST /social-posts`.
 
 **Media notes:**
 - Video: MP4/MOV, H.264, ≤250MB, 3s-10min. Best: 15-30s, 1080×1920 (9:16)
-- Carousels: 2-35 images (photo slideshows)
+- Carousels: up to 10 images per photo post (TikTok itself allows 35; PostFast takes 10)
 - `coverTimestamp` in mediaItems: milliseconds into video for thumbnail (e.g., `"5000"` = 5 seconds). No custom cover image upload for TikTok
 - Caption: max 2,200 characters
 - Sound: with neither `tiktokMusicSoundId` nor `tiktokAutoAddMusic`, a photo post publishes silent and a video keeps its own audio
