@@ -87,6 +87,8 @@ All controls are passed in the `controls` object of `POST /social-posts`.
 | `youtubeCategoryId` | string | — | YouTube category ID |
 | `youtubeThumbnailKey` | string | — | S3 media key for custom thumbnail image. Upload via `/file/get-signed-upload-urls` first. JPEG/PNG/GIF, max 2MB, recommended 1280x720 (16:9), min width 640px. Requires phone-verified YouTube channel. Set after video uploads; if thumbnail upload fails, video still publishes without it |
 | `youtubeContainsSyntheticMedia` | boolean | `false` | Discloses realistic altered or synthetic content to YouTube (sent only when `true`). Set at creation only |
+| `youtubeLanguage` | string | — | The video's language as a BCP-47 code (`en`, `en-GB`, `es`, `es-419`, `fr`, `pt-BR`). Sets both YouTube's "Video language" and "Title and description language"; PostFast normalizes the code (`pt-br` becomes `pt-BR`). Unknown code: `400 youtubeLanguage.invalid`. Set at creation only |
+| `youtubeCaptionKey` | string | — | Key of an uploaded .srt or .vtt file (`file/{uuid}.srt` or `file/{uuid}.vtt`, from `contentType` `application/x-subrip` or `text/vtt`), added as a caption track in `youtubeLanguage` right after the video uploads. Needs `youtubeLanguage` (`400 youtubeCaptionKey.languageRequired`). One track per video. Set at creation only |
 
 **Media notes:**
 - 1 video per post, no images
@@ -95,6 +97,8 @@ All controls are passed in the `controls` object of `POST /social-posts`.
 - H.264 video codec with AAC audio recommended
 
 **Text:** the description (`content`) holds up to 5,000 characters. YouTube doesn't allow `<` or `>` in a title or description, and PostFast rejects the post before saving it if either appears. `firstComment` can be up to 10,000 characters.
+
+**Captions:** the file must be timed SRT or WebVTT in plain UTF-8, at most 10MB. Creating the post checks it (`400 media.invalidMedia` when it's missing, empty, over 10MB, or not timed SRT/WebVTT in plain UTF-8; `400 youtubeCaptionKey.invalid` when the key isn't an .srt or .vtt upload, checked on every platform). YouTube's automatic captions stay available separately. If the captions still can't be added when the video publishes, the video publishes without them. If YouTube refuses the language at publish time (rare, since unknown codes stop at creation), the post fails once without retrying, and `lastError.message` reads "YouTube doesn't accept the video language set on this post. Pick another language, or clear it, and try again." Like every control, both keys apply to every post in the request, so videos in different languages go in separate requests.
 
 ## LinkedIn
 

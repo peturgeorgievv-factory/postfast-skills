@@ -2,7 +2,7 @@
 name: postfast
 description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts (filtered by account, platform, status or date), delete posts one at a time or up to 100 per call, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, pick trending pre-cleared TikTok sounds for photo and carousel posts, read or reply to the comments on their posts (social inbox on TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, generate a connect link so an agency client or their own app's user can connect accounts without a PostFast account, or automate their social media workflow. PostFast is a SaaS tool, no self-hosting required.
 homepage: https://postfa.st
-version: 1.18.1
+version: 1.19.0
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -100,7 +100,7 @@ curl -X POST https://api.postfa.st/social-posts \
   }'
 ```
 
-For video: use `contentType: "video/mp4"`, `type: "VIDEO"`, key prefix `video/`.
+For video: use `contentType: "video/mp4"`, `type: "VIDEO"`, key prefix `video/`. A LinkedIn document (Pattern 7) or a YouTube caption file (Pattern 5c) gets a `file/` key that goes in `controls`, never in `mediaItems`.
 
 ### 4. List and filter posts
 
@@ -417,6 +417,32 @@ Thumbnail specs: JPEG/PNG recommended, max 2MB, 1280x720 (16:9), min width 640px
 
 See [examples/youtube-video-thumbnail.json](examples/youtube-video-thumbnail.json).
 
+### Pattern 5c: YouTube video with language and captions
+
+Set the video's language and add your own caption track:
+
+1. Upload the caption file: get a signed URL with `contentType: "application/x-subrip"` (.srt) or `contentType: "text/vtt"` (.vtt) and `count: 1`, then PUT the file. The key looks like `file/uuid.srt`.
+2. Upload the video (same 3-step flow as always).
+3. Create the post with the video in `mediaItems` and the caption key in `controls`:
+
+```bash
+# controls object:
+{
+  "youtubeIsShort": false,
+  "youtubeTitle": "Full Tutorial: Social Media Strategy",
+  "youtubePrivacy": "PUBLIC",
+  "youtubeLanguage": "en",
+  "youtubeCaptionKey": "file/abc123.srt"
+}
+```
+
+- `youtubeLanguage` is a BCP-47 code (`en`, `en-GB`, `es`, `es-419`, `fr`, `pt-BR`). It sets both YouTube's "Video language" and its "Title and description language". PostFast normalizes the code before sending it (`pt-br` becomes `pt-BR`); an unknown code returns `400 youtubeLanguage.invalid`.
+- `youtubeCaptionKey` needs `youtubeLanguage` (otherwise `400 youtubeCaptionKey.languageRequired`). The track is added in that language right after the video uploads, and viewers see it named by its language. YouTube's automatic captions stay available separately. One caption track per video.
+- The file must be timed SRT or WebVTT in plain UTF-8, at most 10MB. PostFast checks it when the post is created (`400 media.invalidMedia` if it's missing, empty, over 10MB, or not timed SRT/WebVTT in plain UTF-8). If the captions still can't be added when the video publishes, the video publishes without them.
+- Both controls apply to every post in the request and are set at creation only. Videos in different languages, each with its own caption file, go in separate requests.
+
+See [examples/youtube-video-captions.json](examples/youtube-video-captions.json).
+
 ### Pattern 6: Google Business Profile post
 
 Always fetch locations first, then post with GBP-specific controls:
@@ -556,7 +582,7 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 | **TikTok** | `tiktokTitle` (photo carousels, max 90), `tiktokAllowComments`, `tiktokAllowDuet`, `tiktokAllowStitch`, `tiktokIsDraft`, `tiktokIsAigc`, `tiktokBrandOrganic`, `tiktokBrandContent`, `tiktokAutoAddMusic`, `tiktokMusicSoundId` (trending Commercial Music Library sound from the tiktok-sounds helper below, max 128 chars; photo carousels AND videos on Business-API connections; on a video it plays at 50% over the original sound at 50%; mutually exclusive with `tiktokAutoAddMusic`, sending both is rejected; not applied when `tiktokIsDraft` is true), `tiktokMusicSoundName` (display-only label for the chosen sound, max 256 chars, never sent to TikTok; set it whenever the id is set). `tiktokAutoAddMusic` is photo posts only. `tiktokPrivacy` is **deprecated** (no-op) |
 | **Instagram** | `instagramPublishType` (TIMELINE/STORY/REEL), `instagramPostToGrid`, `instagramCollaborators`, `instagramTrialReelStrategy`, `instagramLocationId`, `instagramLocationName`, `instagramIsAiGenerated` |
 | **Facebook** | `facebookContentType` (POST/REEL/STORY), `facebookReelsCollaborators`, `facebookPlaceId`, `facebookPlaceName`, `facebookTargetCountries` |
-| **YouTube** | `youtubeIsShort`, `youtubeTitle`, `youtubePrivacy`, `youtubePlaylistId`, `youtubeTags`, `youtubeMadeForKids`, `youtubeCategoryId`, `youtubeThumbnailKey`, `youtubeContainsSyntheticMedia` |
+| **YouTube** | `youtubeIsShort`, `youtubeTitle`, `youtubePrivacy`, `youtubePlaylistId`, `youtubeTags`, `youtubeMadeForKids`, `youtubeCategoryId`, `youtubeThumbnailKey`, `youtubeContainsSyntheticMedia`, `youtubeLanguage` (BCP-47 code), `youtubeCaptionKey` (an uploaded .srt or .vtt file; needs `youtubeLanguage`) |
 | **LinkedIn** | `linkedinAttachmentKey`, `linkedinAttachmentTitle` (for document posts) |
 | **X (Twitter)** | `xRetweetUrl` (retweet) |
 | **Pinterest** | `pinterestBoardId` (required), `pinterestLink` |
@@ -645,14 +671,14 @@ These limits can change; https://postfa.st/fair-usage is the source of truth. Wa
 
 ## Media Specs Quick Reference
 
-Upload caps for every platform: 250MB per video (Bluesky 100MB, Telegram 50MB), 10MB per image, 60MB per document. No post carries more than 10 media items, on any platform.
+Upload caps for every platform: 250MB per video (Bluesky 100MB, Telegram 50MB), 10MB per image, 60MB per document, 10MB per caption file (SRT/VTT, YouTube only). No post carries more than 10 media items, on any platform.
 
 | Platform | Images | Video | Carousel |
 |---|---|---|---|
 | TikTok | Carousels only | 1 video, MP4/MOV, 3s-10min | Up to 10 images (TikTok itself allows 35; PostFast takes 10) |
 | Instagram | JPEG/PNG | 1 video; Reels 3-90s | Up to 10, images and videos mixed |
 | Facebook | JPG/PNG | 1 per post | Up to 10 images (no mixing with video) |
-| YouTube | — | 1 video; Shorts under 3min, H.264 | — |
+| YouTube | — | 1 video; Shorts under 3min, H.264; optional SRT/VTT caption file | — |
 | LinkedIn | Up to 10 | 1 video | Up to 10 images (no mixing), or 1 document (PDF/DOC/DOCX/PPT/PPTX) |
 | X (Twitter) | Up to 4 | 1 video (no mixing with images) | — |
 | Pinterest | 1 image, 2:3 ratio ideal | 1 video | 2-5 static images |
@@ -702,6 +728,7 @@ Upload caps for every platform: 250MB per video (Bluesky 100MB, Telegram 50MB), 
 37. **TikTok sounds rotate and exclude each other**: `tiktokMusicSoundId` and `tiktokAutoAddMusic` can't both be set (`tiktokMusic.conflictAutoAddMusic`), `tiktokAutoAddMusic` is photo-only, and sound ids rotate daily, so fetch a fresh list per session instead of reusing stored ids.
 38. **YouTube titles and descriptions can't contain `<` or `>`**: YouTube doesn't allow either character, and PostFast rejects the post before saving it. The description holds up to 5,000 characters; the title 100.
 39. **Bluesky video needs a verified email**: Bluesky-hosted accounts must verify their email before the first video upload, and Bluesky caps video uploads per account per day. A rejected upload shows as an error on the post.
+40. **YouTube captions go in `controls` and need a language**: upload the .srt or .vtt with `contentType` `application/x-subrip` or `text/vtt`, then put the `file/` key in `controls.youtubeCaptionKey` (never in `mediaItems`) together with `controls.youtubeLanguage`. Errors at creation: `youtubeCaptionKey.languageRequired` (no language), `youtubeLanguage.invalid` (unknown code), `youtubeCaptionKey.invalid` (not an .srt or .vtt upload; checked on every platform) and `media.invalidMedia` (file missing, empty, over 10MB, or not timed SRT/WebVTT in plain UTF-8).
 
 ## Troubleshooting
 
@@ -771,6 +798,7 @@ Unknown query parameters and body fields are ignored without an error. Check the
 - [examples/facebook-story.json](examples/facebook-story.json): Facebook Story
 - [examples/youtube-short.json](examples/youtube-short.json): YouTube Short with tags
 - [examples/youtube-video-thumbnail.json](examples/youtube-video-thumbnail.json): YouTube video with custom thumbnail
+- [examples/youtube-video-captions.json](examples/youtube-video-captions.json): YouTube video with its language and an SRT caption track
 - [examples/pinterest-pin.json](examples/pinterest-pin.json): Pinterest with board
 - [examples/linkedin-document.json](examples/linkedin-document.json): LinkedIn document post
 - [examples/x-retweet.json](examples/x-retweet.json): X scheduled retweet

@@ -16,10 +16,12 @@
 | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | .docx | LinkedIn documents |
 | `application/vnd.ms-powerpoint` | .ppt | LinkedIn documents |
 | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | .pptx | LinkedIn documents |
+| `application/x-subrip` | .srt | YouTube captions (`youtubeCaptionKey`) |
+| `text/vtt` | .vtt | YouTube captions (`youtubeCaptionKey`) |
 
 Any other content type returns `400` from `POST /file/get-signed-upload-urls`.
 
-**Upload caps (all platforms):** 250MB per video (Bluesky 100MB, Telegram 50MB), 10MB per image, 60MB per document.
+**Upload caps (all platforms):** 250MB per video (Bluesky 100MB, Telegram 50MB), 10MB per image, 60MB per document, 10MB per caption file (SRT/VTT).
 
 ## Per-Platform Specs
 
@@ -56,6 +58,7 @@ Any other content type returns `400` from `POST /file/get-signed-upload-urls`.
 - **Title**: max 100 characters
 - **Description**: max 5,000 characters; no `<` or `>` in the title or description
 - **Thumbnail**: JPEG/PNG/GIF, max 2MB, 1280×720 recommended (`youtubeThumbnailKey`)
+- **Captions**: timed SRT or WebVTT in plain UTF-8, max 10MB, one track per video, in the language set by `youtubeLanguage` (`youtubeCaptionKey`)
 
 ### LinkedIn
 - **Images**: Up to 10 per post

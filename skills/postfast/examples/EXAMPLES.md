@@ -21,6 +21,7 @@ Ready-to-use request bodies for common social media scheduling scenarios.
 | [facebook-story.json](facebook-story.json) | Facebook Story (image) |
 | [youtube-short.json](youtube-short.json) | YouTube Short with tags and playlist |
 | [youtube-video-thumbnail.json](youtube-video-thumbnail.json) | YouTube video with custom thumbnail image |
+| [youtube-video-captions.json](youtube-video-captions.json) | YouTube video with its language and an SRT caption track |
 | [pinterest-pin.json](pinterest-pin.json) | Pinterest pin with board and destination link |
 | [linkedin-document.json](linkedin-document.json) | LinkedIn document/carousel post (PDF) |
 | [x-retweet.json](x-retweet.json) | X scheduled retweet (content ignored) |

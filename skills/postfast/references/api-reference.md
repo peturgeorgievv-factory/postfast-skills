@@ -200,16 +200,16 @@ Get pre-signed S3 URLs for media upload. Rate limit: 180/minute, 420/day.
 { "contentType": "image/png", "count": 1 }
 ```
 
-Accepted content types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `video/mp4`, `video/webm`, `video/mov`, `video/quicktime`, `application/pdf`, `application/msword`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/vnd.ms-powerpoint`, `application/vnd.openxmlformats-officedocument.presentationml.presentation`. Anything else (including `image/jpg`, use `image/jpeg`) returns `400`.
+Accepted content types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `video/mp4`, `video/webm`, `video/mov`, `video/quicktime`, `application/pdf`, `application/msword`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/vnd.ms-powerpoint`, `application/vnd.openxmlformats-officedocument.presentationml.presentation`, `application/x-subrip` (.srt), `text/vtt` (.vtt). Anything else (including `image/jpg`, use `image/jpeg`) returns `400`.
 
-Size caps: 250MB per video (Bluesky 100MB, Telegram 50MB), 10MB per image, 60MB per document.
+Size caps: 250MB per video (Bluesky 100MB, Telegram 50MB), 10MB per image, 60MB per document, 10MB per caption file (SRT/VTT).
 
 **Response:**
 ```json
 [{ "key": "image/a1b2c3d4-e5f6-7890-1234-567890abcdef.png", "signedUrl": "https://s3..." }]
 ```
 
-Then PUT the raw file to `signedUrl` with a `Content-Type` header that matches the requested `contentType`.
+Then PUT the raw file to `signedUrl` with a `Content-Type` header that matches the requested `contentType`. Images get `image/` keys, videos `video/`, documents and caption files `file/` (for example `file/uuid.srt`).
 
 ### GET /social-posts
 
@@ -327,6 +327,8 @@ Create/schedule one or more posts. Up to 15 posts per request. Rate limit: 180/m
 
 **Controls extra notes:**
 - `youtubeThumbnailKey` (string): S3 key for custom YouTube thumbnail (from upload flow). JPEG/PNG recommended, max 2MB, 1280x720 (16:9). Requires phone-verified channel. If thumbnail upload fails, video still publishes without it
+- `youtubeLanguage` (string): the video's language as a BCP-47 code (`en`, `en-GB`, `es`, `es-419`, `fr`, `pt-BR`); sets YouTube's video language and title/description language. PostFast normalizes the code (`pt-br` becomes `pt-BR`). Creation-only
+- `youtubeCaptionKey` (string): an uploaded .srt or .vtt file (`file/uuid.srt` or `.vtt`, from `contentType` `application/x-subrip` or `text/vtt`), added as a caption track in `youtubeLanguage` right after the video uploads. Needs `youtubeLanguage`; one track per video; timed SRT/WebVTT in plain UTF-8, max 10MB, checked at creation. If the captions can't be added at publish, the video publishes without them. Creation-only
 - `facebookPlaceId` / `instagramLocationId` (string): geotag the post with a place ID from `GET /social-media/search-places`. Same numeric ID for both. `facebookPlaceId` is Facebook feed posts only (text/photo/carousel, not Reels/Stories/video); `instagramLocationId` is a single image/video/reel/story (not carousels)
 - `facebookPlaceName` / `instagramLocationName` (string): optional display-only label for the place. Stored for your dashboard; never sent to Meta
 - `facebookTargetCountries` (string[]): restrict a Facebook feed post to up to 25 ISO 3166-1 alpha-2 country codes (case-insensitive). Audience gating, so the post is hidden from everyone else and from logged-out users. Can combine with `facebookPlaceId`
@@ -371,6 +373,10 @@ Fires only when scheduling (`status: SCHEDULED` or `scheduledAt` set). **Drafts 
 | Country limit on a Facebook Reel or Story | `facebookTargetCountries.contentType.notSupported` |
 | More than 25 countries | `facebookTargetCountries.tooMany` |
 | Non-numeric place/location ID | `facebookPlaceId.invalidId` / `instagramLocationId.invalidId` |
+| Caption file missing, empty, over 10MB, or not timed SRT/WebVTT in plain UTF-8 | `media.invalidMedia` |
+| `youtubeCaptionKey` that isn't a `file/uuid.srt` or `.vtt` upload (checked on every platform) | `youtubeCaptionKey.invalid` |
+| YouTube post with a caption key but no `youtubeLanguage` | `youtubeCaptionKey.languageRequired` |
+| Unknown `youtubeLanguage` code on a YouTube post | `youtubeLanguage.invalid` |
 
 ### DELETE /social-posts/:id
 
