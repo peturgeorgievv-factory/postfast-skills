@@ -37,15 +37,15 @@ clawhub install @peturgeorgievv/postfast
 export POSTFAST_API_KEY="your-api-key"
 ```
 
-The skill teaches your agent the full PostFast API: scheduling, cross-posting, media uploads, drafts, listing posts by account, platform, status or date, deleting posts one at a time or up to 100 per call, analytics (including video watch time and Instagram save rate), follower history, TikTok trending sounds, the Social Inbox for comments, client connect links, and the per-endpoint rate limits.
+The skill teaches your agent the full PostFast API: scheduling, cross-posting, media uploads, drafts, listing posts by account, platform, status or date, deleting posts one at a time or up to 100 per call, analytics (including video watch time and Instagram save rate), follower history, TikTok trending sounds, the Social Inbox for comments, webhooks for published and failed posts and for connected and disconnected accounts, client connect links, and the per-endpoint rate limits.
 
 ## What's inside
 
 ```
 skills/postfast/
 ├── SKILL.md          # The skill: full API workflow instructions
-├── references/       # API reference, platform controls, media specs, upload flow
-└── examples/         # 31 ready-to-use request examples
+├── references/       # API reference generated from the PostFast docs, platform controls, media specs, upload flow
+└── examples/         # 34 ready-to-use request examples
 ```
 
 ## Guides
@@ -59,7 +59,7 @@ skills/postfast/
 
 ## Versioning
 
-This repository is the canonical source. The same skill is published to ClawHub as [@peturgeorgievv/postfast](https://clawhub.ai/peturgeorgievv/skills/postfast). Versions follow the `version` field in SKILL.md frontmatter.
+This repository is the canonical source. The files under `references/` that say so at the top (`api-reference.md`, `post-examples.md`, `social-inbox.md`, `webhooks.md`) are generated from the [PostFast API docs](https://postfa.st/docs) at every release, so they do not drift from the API. The same skill is published to ClawHub as [@peturgeorgievv/postfast](https://clawhub.ai/peturgeorgievv/skills/postfast). Versions follow the `version` field in SKILL.md frontmatter.
 
 ## License
 
