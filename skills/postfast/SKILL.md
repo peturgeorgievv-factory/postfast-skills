@@ -2,7 +2,7 @@
 name: postfast
 description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, upload media for social posting, list connected social accounts, check scheduled posts (filtered by account, platform, status or date), delete posts one at a time or up to 100 per call, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, pick trending pre-cleared TikTok sounds, read or reply to the comments on their posts (social inbox on TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, generate a connect link so an agency client or their own app's user can connect accounts without a PostFast account, get webhooks when a post publishes or fails or an account disconnects, or automate their social media workflow. PostFast is a SaaS tool, no self-hosting required.
 homepage: https://postfa.st
-version: 1.20.0
+version: 1.21.0
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -183,13 +183,14 @@ Returns `{ "connectUrl": "https://app.postfa.st/connect?token=..." }`. Share the
 Every field is optional (`expiryDays` is 1-30, default 7):
 
 - `platforms` restricts which of the 11 the link offers. Omit it to offer all of them, and never send an empty array (rejected). The scope is baked into the link's token and enforced server-side, so a scoped link cannot connect any other platform.
-- `redirectUrl` makes the connect page offer a `Return to <your host>` button once connecting finishes, carrying `status` (`success` or `error`), plus `platform` and `accountId` on success or `message` on error, plus your `externalId`. `accountId` is the same id `my-social-accounts` returns (for Facebook, the first Page the user picked), so it is the completion signal in the browser, with no need to poll and diff. After the Facebook or LinkedIn page step the return URL also carries `accountIds`, every account connected, comma-separated. On your server, the `account.connected` webhook event says the same thing once per account and carries your `externalId` (see [Webhooks](#webhooks)). Bluesky and Telegram connect inside the page and don't offer the button. https only (`http` is accepted on `localhost` / `127.0.0.1` / `[::1]`), max 2000 chars, no credentials in the URL.
+- `redirectUrl` makes the connect page offer a `Return to <your host>` button once connecting finishes, carrying `status` (`success` or `error`), plus `platform` and `accountId` on success or `message` on error, plus your `externalId`. `accountId` is the same id `my-social-accounts` returns (for Facebook, the first Page the user picked), so it is the completion signal in the browser, with no need to poll and diff. After the Facebook or LinkedIn page step the return URL also carries `accountIds`, every account connected, comma-separated. A Pinterest account with no board yet adds `needsBoard=true`, and a Google Business Profile account with no location adds `needsLocation=true`; neither can be posted to until it has one. On your server, the `account.connected` webhook event says the same thing once per account and carries your `externalId` (see [Webhooks](#webhooks)). Bluesky and Telegram connect inside the page and don't offer the button. https only (`http` is accepted on `localhost` / `127.0.0.1` / `[::1]`), max 2000 chars, no credentials in the URL.
+- `skipConnectPage` (default false) skips the connect page, for links your own product opens: the user goes straight to the platform's login and, once the platform hands back, straight to your `redirectUrl`, with no click on PostFast's page. It needs exactly one platform in `platforms` and cannot be combined with `sendEmail`. `LINKEDIN`, `BLUESKY` and `TELEGRAM` links accept it but show the connect page anyway, and a `FACEBOOK` link still stops at the Pages picker. The automatic return happens only in the browser tab that went out to the platform: in any other tab or browser, or when the link cannot start (no active plan, or the account limit is reached), the page shows the `Return to` button, which then carries `status=error` and `message`. Without a `redirectUrl`, a skip link ends on the connect page's success message.
 - `externalId` is your own reference (a tenant or user id), echoed back unchanged on that return URL. Max 128 chars, `A-Za-z0-9-._~:@` only.
 - `sendEmail` + `email` email the link to the client. Delivery is best effort: a failed send still returns the link.
 
-Validation errors (`400`) carry a stable code in `message`: `connectLink.redirectUrlNotHttps`, `connectLink.redirectUrlInvalid` (for example a URL that carries credentials), `connectLink.externalIdInvalid`. Enum and length violations come back as a `message` array instead, such as `"platforms should not be empty"` or `"externalId must be shorter than or equal to 128 characters"`.
+Validation errors (`400`) carry a stable code in `message`: `connectLink.redirectUrlNotHttps`, `connectLink.redirectUrlInvalid` (for example a URL that carries credentials), `connectLink.externalIdInvalid`, `connectLink.skipConnectPageNeedsOnePlatform` (`skipConnectPage` with no platform or more than one), `connectLink.skipConnectPageWithEmail` (`skipConnectPage` together with `sendEmail`); the last two carry the reason in `description`. Enum and length violations come back as a `message` array instead, such as `"platforms should not be empty"` or `"externalId must be shorter than or equal to 128 characters"`.
 
-The same fields exist as `generate_connect_link` MCP tool arguments in `postfast-mcp` ≥ 0.6.0.
+The same fields exist as `generate_connect_link` MCP tool arguments in `postfast-mcp` ≥ 0.6.0 (`skipConnectPage` since 0.16.0).
 
 ### 8. Create a draft post
 
@@ -606,7 +607,7 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 - **GBP locations**: `GET /social-media/{id}/gbp-locations` → returns `[{ id, locationId, title, address, mapsUri }]`. Use `locationId` as `gbpLocationId` in controls. A missing location appears after Sync Locations in the dashboard
 - **Follower history**: `GET /social-media/{id}/follower-history?from=&to=` → daily snapshots `{ series: [{ capturedAt, followerCount }], currentFollowerCount, delta, trackingStartedAt }`. Forward-only, default 90d, max 365d. Covers every platform except X and personal Facebook
 - **Place search (geotag)**: `GET /social-media/search-places?q=<text>` → returns `[{ id, name, link?, city?, country?, street?, zip?, pictureUrl? }]`. The `id` is a Facebook Page ID that works as BOTH `facebookPlaceId` (Facebook) and `instagramLocationId` (Instagram); `link` is the place's Facebook Page URL. `q` needs min 2 chars, returns up to 100 address-carrying Pages, cached 7 days
-- **Connect link**: `POST /social-media/connect-link` → returns `{ connectUrl }`. Let clients connect accounts without a PostFast account. Params: `expiryDays` (1-30, default 7), `platforms` (string[], restricts which platforms the link offers; omit for all 11, empty array rejected, enforced server-side), `redirectUrl` (https except `http` on localhost, max 2000 chars; the connect page then offers a return button carrying `status`, `platform`, `accountId`, `externalId`, plus `accountIds` after the Facebook/LinkedIn page step), `externalId` (your own reference, max 128 chars, `A-Za-z0-9-._~:@`), `sendEmail` (bool, best effort), `email` (required if sendEmail=true). The `account.connected` webhook event reports each account connected through the link
+- **Connect link**: `POST /social-media/connect-link` → returns `{ connectUrl }`. Let clients connect accounts without a PostFast account. Params: `expiryDays` (1-30, default 7), `platforms` (string[], restricts which platforms the link offers; omit for all 11, empty array rejected, enforced server-side), `redirectUrl` (https except `http` on localhost, max 2000 chars; the connect page then offers a return button carrying `status`, `platform`, `accountId`, `externalId`, plus `accountIds` after the Facebook/LinkedIn page step), `skipConnectPage` (bool; skips the connect page for a link your own product opens, needs exactly one platform and no `sendEmail`), `externalId` (your own reference, max 128 chars, `A-Za-z0-9-._~:@`), `sendEmail` (bool, best effort), `email` (required if sendEmail=true). The `account.connected` webhook event reports each account connected through the link
 - **TikTok trending sounds**: `GET /social-media/{id}/tiktok-sounds?genre=&countryCode=&dateRange=` → up to 100 trending pre-cleared Commercial Music Library tracks, already ordered by trending rank: `[{ musicSoundId, name, artist, duration, thumbnailUrl, previewUrl, rankPosition, genres, commercialMusicId, fullDurationClipId, trendingClipId }]` (`duration` is the seconds of the exact clip, `previewUrl` plays exactly what gets attached). No pagination: narrow with the params and filter the rest yourself. TikTok **Business-API connections only**: an account connected long ago returns `400 tiktokMusic.requiresBusinessApi` until it is reconnected once. `genre` takes raw TikTok values like `POP`, `HIP_HOP/RAP`, `R&B/SOUL`, `K-POP`, default all genres (URL-encode the `/` and `&`, e.g. `HIP_HOP%2FRAP`); `countryCode` = 2-letter uppercase, default US; `dateRange` = `1DAY | 7DAY | 30DAY | 90DAY`, default 7DAY. Bad values return `400` `tiktokSounds.invalidGenre` / `tiktokSounds.invalidCountryCode` / `tiktokSounds.invalidDateRange`; a valid country with no TikTok chart returns `200 []`; an id that isn't a TikTok account in this workspace returns `404 tiktokSounds.socialMediaNotFound`. The list rotates roughly daily (each filter combination is cached ~6h), so fetch fresh instead of reusing old ids. Use a result's `musicSoundId` as `tiktokMusicSoundId` in the post's controls (plus `tiktokMusicSoundName` for the label)
 
 ## Social Inbox (Comments)
@@ -799,6 +800,8 @@ Upload caps for every platform: 250MB per video (Bluesky 100MB, Telegram 50MB), 
 43. **Webhook deliveries can repeat and arrive out of order**: deduplicate on the event `id`, verify the signature on the raw request body, and answer `2xx` within 15 seconds.
 44. **A restricted account pauses replies for 24 hours**: after `inbox.replyPaused`, every reply from that account fails until the time in `description`. Stop sending from it instead of retrying.
 45. **Facebook link carousels are images only**: `facebookCarouselMainLink` needs 2 to 10 images; with one image the post is a normal photo post.
+46. **No active plan is a `403 subscription.required` on every endpoint**: the account's trial or plan ended, or its first payment failed. It is not a rate limit and has no `Retry-After`: stop, don't retry in a loop, and show the account owner the `description` (it names where the plan is restarted). The key is not revoked and works again as soon as the plan is active, so never tell the user to make a new one. Branch on `message`, not on the status: other refusals are `403` too.
+47. **X posts with a link need an active paid plan**: scheduling one during the trial, or while a payment is failing, returns `400 xLinkRequiresActivePlan` and refuses the whole request, posts to other platforms included. Anything X reads as a link counts, in `content` or `firstComment`, a bare domain like `example.com` too. Sending it again returns the same `400`: send the X post without the link, or save it as a draft. Drafts are not checked.
 
 ## Troubleshooting
 
@@ -838,6 +841,14 @@ You exceeded one of the four windows of the endpoint you called (limits are per 
 ### 403 `sub.<plan>.maxScheduledPosts`
 
 The organization's post queue is full for its plan (see the ceilings in [Rate Limits](#rate-limits)). It is not a rate limit: there is no `Retry-After`, and retrying does not help. Wait until queued posts have published, save the remaining posts as drafts (`status: "DRAFT"`), or tell the user a bigger plan raises the ceiling.
+
+### 403 `subscription.required`
+
+The key's account has no active plan: its trial ended, its plan ended, or its first payment failed (a paid plan whose renewal failed keeps API access while the payment is retried). Every endpoint answers this way until the plan is active again. Stop calling and don't retry in a loop; show the account owner the `description`, which says where the plan is restarted (`https://app.postfa.st/dashboard/payments`). The key itself is fine: the same key works again once the plan is active.
+
+### 400 `xLinkRequiresActivePlan`
+
+A scheduled post to an X account has a link in `content` or `firstComment` while the account is on its trial or its payment is failing. The whole request is refused, posts to other platforms included, and sending it again changes nothing. Send the X post without the link, or save it as a draft (`status: "DRAFT"`); link posts on X work once the account is on an active paid plan. A link post scheduled while the plan was active is checked again when it publishes.
 
 ### 400 on `GET /social-posts` with a filter
 
@@ -946,7 +957,7 @@ GET /social-media/:id/follower-history?from=...&to=...
 GET /social-media/:id/tiktok-sounds?genre=&countryCode=&dateRange=
 
 # Connect link (for clients)
-POST /social-media/connect-link  { expiryDays?, platforms?, redirectUrl?, externalId?, sendEmail?, email? }
+POST /social-media/connect-link  { expiryDays?, platforms?, redirectUrl?, skipConnectPage?, externalId?, sendEmail?, email? }
 
 # Social Inbox (comments)
 GET  /social-inbox/conversations?unreadOnly=true
@@ -966,6 +977,7 @@ POST   /webhook-endpoints/:id/test   { sampleEvent? }
 
 # Rate limits: per endpoint; on 429 wait Retry-After seconds (blocked calls still count)
 # Queue full: 403 sub.<plan>.maxScheduledPosts is not a rate limit, don't retry
+# No active plan: 403 subscription.required on every endpoint; stop, tell the owner, keep the key
 ```
 
 ## Tips for the Agent

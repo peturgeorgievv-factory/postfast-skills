@@ -226,21 +226,22 @@ curl -G "https://api.postfa.st/social-media/550e8400-e29b-41d4-a716-446655440001
 
 ### POST /social-media/connect-link
 
-Generates a secure connect link that lets someone connect their social accounts to your workspace without a PostFast account. Can be scoped to specific platforms and return the user to your own app when done. Optionally emails the link.
+Generates a secure connect link that lets someone connect their social accounts to your workspace without a PostFast account. Can be scoped to specific platforms and return the user to your own app when done, or skip the connect page for links your own product opens. Optionally emails the link.
 
 **Rate Limit:** 180 requests per hour
 
 **Request body:**
 - `expiryDays` (optional, int 1-30, default 7) - Days until the link expires
 - `platforms` (optional, string[]) - Restrict the link to these platforms; omit to offer all 11. Enforced server-side, so a scoped link cannot connect anything else
-- `redirectUrl` (optional) - Where the connect page offers to send the user when connecting finishes. https only, except http on localhost, max 2000 chars
+- `redirectUrl` (optional) - Where the connect page offers to send the user when connecting finishes (with `skipConnectPage`, the user is sent there automatically). https only, except http on localhost, max 2000 chars
 - `externalId` (optional) - Your reference, echoed back on the return URL. Max 128 chars, `A-Za-z0-9-._~:@`
 - `sendEmail` (optional, default false) - Email the connect link; delivery is best effort, a send failure still returns 201
 - `email` (required when sendEmail=true) - Recipient email address
+- `skipConnectPage` (optional, default false) - Skip the connect page: the user goes straight to the platform's login and, once the platform hands back, straight to your `redirectUrl`, without a click on our page. For links your own product opens. Needs exactly one platform in `platforms` (else 400 `connectLink.skipConnectPageNeedsOnePlatform`) and cannot be combined with `sendEmail` (400 `connectLink.skipConnectPageWithEmail`); both 400s carry the reason in `description`. `LINKEDIN`, `BLUESKY` and `TELEGRAM` links accept it but show the connect page anyway, and a `FACEBOOK` link still stops at the Pages picker
 
 **Response:** `{ "connectUrl": "https://app.postfa.st/connect?token=..." }`. The token is a JWT and can be long; use the full URL as returned, do not truncate.
 
-**Return URL:** when `redirectUrl` is set, the connect page offers a `Return to <your host>` button carrying `status` (`success` or `error`), plus `platform` and `accountId` on success or `message` on error, plus your `externalId`. `accountId` is the same id `GET /social-media/my-social-accounts` returns (for Facebook, the first Page the user picked), so it is the completion signal in the browser, with no need to poll and diff. After the Facebook or LinkedIn page step it also carries `accountIds`, every account connected, comma-separated: the chosen Pages (Facebook), or the profile plus the chosen organization pages (LinkedIn). Facebook and LinkedIn offer the button after the page step; Bluesky and Telegram connect in the page and do not offer it. On your server, the `account.connected` webhook event (below) says the same thing, once per account, and carries your `externalId`; a Facebook login also sends one event for the personal profile, which is not a usable account.
+**Return URL:** when `redirectUrl` is set, the connect page offers a `Return to <your host>` button carrying `status` (`success` or `error`), plus `platform` and `accountId` on success or `message` on error, plus your `externalId`. `accountId` is the same id `GET /social-media/my-social-accounts` returns (for Facebook, the first Page the user picked), so it is the completion signal in the browser, with no need to poll and diff. After the Facebook or LinkedIn page step it also carries `accountIds`, every account connected, comma-separated: the chosen Pages (Facebook), or the profile plus the chosen organization pages (LinkedIn). Facebook and LinkedIn offer the button after the page step; Bluesky and Telegram connect in the page and do not offer it. A Pinterest account with no board yet adds `needsBoard=true`, and a Google Business Profile account with no location adds `needsLocation=true`; neither can be posted to until it has one. A link made with `skipConnectPage` returns on its own instead, with the same params, but only in the browser tab that went out to the platform: if the platform hands back to any other tab or browser, or the link cannot start (no active plan, or the account limit is reached), the page shows the button, which then carries `status=error` and `message` for the failed start. Without a `redirectUrl`, a skip link ends on the connect page's success message. On your server, the `account.connected` webhook event (below) says the same thing, once per account, and carries your `externalId`; a Facebook login also sends one event for the personal profile, which is not a usable account.
 
 **cURL:**
 
@@ -569,12 +570,28 @@ In [webhooks.md](webhooks.md): `POST /webhook-endpoints`, `GET /webhook-endpoint
 
 ## Error Responses
 
-- `400 Bad Request` - Malformed request, or scheduling a post to a DISABLED account (reconnect it in the app first).
-- `401 Unauthorized` - API key missing, invalid, or not authorized for the workspace.
-- `403 Forbidden` - Key is valid but lacks permission for the action (e.g. another workspace's resources), or the account's post queue is full (below).
+- `400 Bad Request` - Malformed request, scheduling a post to a DISABLED account (reconnect it in the app first), or scheduling an X post with a link during a trial or while a payment is failing (below).
+- `403 Forbidden` - Key is missing or invalid, lacks permission for the action (e.g. another workspace's resources), the account has no active plan (below), or the account's post queue is full (below).
 - `404 Not Found` - Resource not found, e.g. `tiktokSounds.socialMediaNotFound` when the account is not a TikTok account in your workspace. Deleting a post never returns 404 (an unknown id answers 200 with `{ "deleted": false }`).
 - `429 Too Many Requests` - Rate limit exceeded for the endpoint.
 - `500 Internal Server Error` - Unexpected server error.
+
+### No active plan (403)
+
+Every endpoint returns `403` with `message` `subscription.required` when the key's account has no active plan: its trial ended, its plan ended, or its first payment failed. A paid plan whose renewal payment failed keeps API access while the payment is retried. `description` is a sentence you can show the account owner as it is.
+
+The key is not revoked. The same key works again as soon as the plan is active, so keep it.
+
+Stop and don't retry in a loop: this is not a rate limit and carries no `Retry-After`. Tell the account owner, and resume once the plan is active again. Branch on `message`, not on the status alone: other refusals are `403` too.
+
+```json
+{
+  "statusCode": 403,
+  "message": "subscription.required",
+  "error": "FORBIDDEN",
+  "description": "Your PostFast plan isn't active, so API access is paused. The account owner can restart it at https://app.postfa.st/dashboard/payments. This key works again as soon as it is."
+}
+```
 
 ### Post queue full (403)
 
@@ -590,5 +607,22 @@ Stop sending scheduled posts and don't retry in a loop: this is not a rate limit
   "message": "sub.starter.maxScheduledPosts",
   "error": "FORBIDDEN",
   "description": "Your Starter plan holds 150 queued posts at a time, and 150 are queued now. A slot frees up each time a queued post publishes."
+}
+```
+
+### X posts with links (400)
+
+`POST /social-posts` returns `400` with `message` `xLinkRequiresActivePlan` when a scheduled post to an X account has a link in `content` or `firstComment` while the account is on its trial or its payment is failing. Anything X reads as a link counts, a bare domain like `example.com` too. The whole request is refused, posts to other platforms included.
+
+Drafts are not checked. A link post scheduled while the plan was active is checked again when it publishes, and fails without a retry if the plan is not active then.
+
+Sending the same request again returns the same `400`. Send the X post without the link, or save it as a draft (`status: DRAFT`).
+
+```json
+{
+  "statusCode": 400,
+  "message": "xLinkRequiresActivePlan",
+  "error": "BAD_REQUEST",
+  "description": "Posts with links on X need an active paid plan. They can't be published during a trial or while a payment is failing."
 }
 ```
