@@ -7,7 +7,7 @@ All controls are passed in the `controls` object of `POST /social-posts`.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `tiktokTitle` | string | — | Photo-carousel title, max 90 chars. When set, `content` becomes the description. Photo carousels only |
-| `tiktokPrivacy` | string | — | **Deprecated, no-op. Don't set it.** TikTok videos publish at the account's default privacy (no per-post control); photos default to public. Use a TikTok app draft (`tiktokIsDraft`) for a private post |
+| `tiktokPrivacy` | string | — | **Deprecated. Don't set it, and don't rely on it to choose who sees a post.** Use a TikTok app draft (`tiktokIsDraft`) for a private post and pick the audience in the TikTok app |
 | `tiktokAllowComments` | boolean | `true` | Allow comments |
 | `tiktokAllowDuet` | boolean | `true` | Allow duets |
 | `tiktokAllowStitch` | boolean | `true` | Allow stitches |

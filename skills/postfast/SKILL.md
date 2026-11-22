@@ -2,7 +2,7 @@
 name: postfast
 description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, upload media for social posting, list connected social accounts, check scheduled posts (filtered by account, platform, status or date), delete posts one at a time or up to 100 per call, cross-post content to multiple platforms, manage Google Business Profile posts, geotag posts with real-world places, pick trending pre-cleared TikTok sounds, read or reply to the comments on their posts (social inbox on TikTok, Instagram, Facebook, Threads), triage or moderate comment conversations, generate a connect link so an agency client or their own app's user can connect accounts without a PostFast account, get webhooks when a post publishes or fails or an account disconnects, or automate their social media workflow. PostFast is a SaaS tool, no self-hosting required.
 homepage: https://postfa.st
-version: 1.21.0
+version: 1.21.1
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}},"hermes":{"tags":["social-media","scheduling","marketing","automation"],"category":"productivity"}}
 ---
 
@@ -57,7 +57,7 @@ curl -X POST https://api.postfa.st/social-posts \
     "posts": [{
       "content": "Your post text here",
       "mediaItems": [],
-      "scheduledAt": "2026-06-15T10:00:00.000Z",
+      "scheduledAt": "2027-02-01T10:00:00.000Z",
       "socialMediaId": "ACCOUNT_ID_HERE"
     }],
     "controls": {}
@@ -93,7 +93,7 @@ curl -X POST https://api.postfa.st/social-posts \
     "posts": [{
       "content": "Post with image!",
       "mediaItems": [{ "key": "image/uuid.png", "type": "IMAGE", "sortOrder": 0 }],
-      "scheduledAt": "2026-06-15T10:00:00.000Z",
+      "scheduledAt": "2027-02-01T10:00:00.000Z",
       "socialMediaId": "ACCOUNT_ID_HERE"
     }],
     "controls": {}
@@ -119,7 +119,7 @@ Returns `{ "data": [...], "totalCount": 25, "pageInfo": { "page": 1, "hasNextPag
 - `statuses` (string): comma-separated, any of `DRAFT`, `SCHEDULED`, `PUBLISHED`, `FAILED`
 - `from` / `to` (ISO 8601 UTC): date range filter on `scheduledAt`
 
-Example, one account's scheduled posts in June: `GET /social-posts?socialMediaIds=ACCOUNT_ID&statuses=SCHEDULED&from=2026-06-01T00:00:00Z&to=2026-06-30T23:59:59Z&limit=50`
+Example, one account's scheduled posts in February: `GET /social-posts?socialMediaIds=ACCOUNT_ID&statuses=SCHEDULED&from=2027-02-01T00:00:00Z&to=2027-02-28T23:59:59Z&limit=50`
 
 - `ids` and `socialMediaIds` only match this workspace: an id from another workspace matches nothing (`200`, no posts).
 - To skip a filter, leave the parameter out. An empty value (`ids=`), a trailing comma, a non-UUID or more than 100 entries returns `400`.
@@ -316,9 +316,9 @@ curl -X POST https://api.postfa.st/social-posts \
   -H "Content-Type: application/json" \
   -d '{
     "posts": [
-      { "content": "Big announcement!", "mediaItems": [], "scheduledAt": "2026-06-15T09:00:00.000Z", "socialMediaId": "LINKEDIN_ID" },
-      { "content": "Big announcement!", "mediaItems": [], "scheduledAt": "2026-06-15T09:00:00.000Z", "socialMediaId": "X_ID" },
-      { "content": "Big announcement!", "mediaItems": [], "scheduledAt": "2026-06-15T09:00:00.000Z", "socialMediaId": "THREADS_ID" }
+      { "content": "Big announcement!", "mediaItems": [], "scheduledAt": "2027-02-01T09:00:00.000Z", "socialMediaId": "LINKEDIN_ID" },
+      { "content": "Big announcement!", "mediaItems": [], "scheduledAt": "2027-02-01T09:00:00.000Z", "socialMediaId": "X_ID" },
+      { "content": "Big announcement!", "mediaItems": [], "scheduledAt": "2027-02-01T09:00:00.000Z", "socialMediaId": "THREADS_ID" }
     ],
     "controls": {}
   }'
@@ -350,7 +350,7 @@ Upload video, then post with interaction controls:
 }
 ```
 
-**`tiktokPrivacy` is deprecated. Don't set it.** TikTok videos publish at the account's default privacy (no per-post control) and photos default to public. For a private post, save it as a TikTok app draft (`tiktokIsDraft: true`) and set visibility on the phone.
+**`tiktokPrivacy` is deprecated. Don't set it, and don't rely on it to choose who sees a post.** For a private post, save it as a TikTok app draft (`tiktokIsDraft: true`) and pick the audience when you finish it in the TikTok app.
 
 **Sound:** `tiktokMusicSoundId` (a `musicSoundId` from the tiktok-sounds helper) attaches a licensed trending track to a photo carousel **or** a video; on a video the track and the video's original sound each play at 50% volume (no volume or trim controls). `tiktokAutoAddMusic: true` lets TikTok pick a track, photo posts only. The two are mutually exclusive (both set returns `tiktokMusic.conflictAutoAddMusic`). With neither set, a photo post publishes silent and a video keeps its own audio. Music controls are not applied to TikTok app drafts (`tiktokIsDraft: true`).
 
@@ -484,12 +484,12 @@ Add a `firstComment` to any post. It's auto-posted ~10 seconds after the main po
 
 ```json
 {
-  "posts": [{ "content": "Main post text", "firstComment": "Link: https://postfa.st", "mediaItems": [], "scheduledAt": "...", "socialMediaId": "X_ID" }],
+  "posts": [{ "content": "Main post text", "firstComment": "A first comment, posted under the post", "mediaItems": [], "scheduledAt": "...", "socialMediaId": "X_ID" }],
   "controls": {}
 }
 ```
 
-Supported on: X, Instagram, Facebook, YouTube, Threads, and TikTok. NOT supported on: Pinterest, Bluesky, LinkedIn, Google Business Profile (a validation error). **TikTok caveat:** max 1,200 chars, comments must be enabled on the post, and a TikTok account that can't post comments is rejected with `firstComment.tiktok.notSupported`. On X, a link in the first comment counts toward the monthly X link-post allowance (see [Rate Limits](#rate-limits)).
+Supported on: X, Instagram, Facebook, YouTube, Threads, and TikTok. NOT supported on: Pinterest, Bluesky, LinkedIn, Google Business Profile (a validation error). **TikTok caveat:** max 1,200 chars, comments must be enabled on the post, and a TikTok account that can't post comments is rejected with `firstComment.tiktok.notSupported`. On X, a link in the first comment needs an active paid plan (gotcha 47: refused during the trial) and counts toward the monthly X link-post allowance (see [Rate Limits](#rate-limits)); a link in both the post and its first comment counts as two.
 
 See [examples/x-first-comment.json](examples/x-first-comment.json).
 
@@ -557,7 +557,7 @@ See [examples/facebook-geotag.json](examples/facebook-geotag.json) and [examples
 
 ```json
 {
-  "posts": [{ "content": "Five things we learned shipping our API", "mediaItems": [], "scheduledAt": "2026-06-15T09:00:00.000Z", "socialMediaId": "THREADS_ID" }],
+  "posts": [{ "content": "Five things we learned shipping our API", "mediaItems": [], "scheduledAt": "2027-02-01T09:00:00.000Z", "socialMediaId": "THREADS_ID" }],
   "controls": { "threadsTopicTag": "Startups" }
 }
 ```
@@ -588,7 +588,7 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 
 | Platform | Key Controls |
 |---|---|
-| **TikTok** | `tiktokTitle` (photo carousels, max 90), `tiktokAllowComments`, `tiktokAllowDuet`, `tiktokAllowStitch`, `tiktokIsDraft`, `tiktokIsAigc`, `tiktokBrandOrganic`, `tiktokBrandContent`, `tiktokAutoAddMusic`, `tiktokMusicSoundId` (trending Commercial Music Library sound from the tiktok-sounds helper below, max 128 chars; photo carousels AND videos on Business-API connections; on a video it plays at 50% over the original sound at 50%; mutually exclusive with `tiktokAutoAddMusic`, sending both is rejected; not applied when `tiktokIsDraft` is true), `tiktokMusicSoundName` (display-only label for the chosen sound, max 256 chars, never sent to TikTok; set it whenever the id is set). `tiktokAutoAddMusic` is photo posts only. `tiktokPrivacy` is **deprecated** (no-op) |
+| **TikTok** | `tiktokTitle` (photo carousels, max 90), `tiktokAllowComments`, `tiktokAllowDuet`, `tiktokAllowStitch`, `tiktokIsDraft`, `tiktokIsAigc`, `tiktokBrandOrganic`, `tiktokBrandContent`, `tiktokAutoAddMusic`, `tiktokMusicSoundId` (trending Commercial Music Library sound from the tiktok-sounds helper below, max 128 chars; photo carousels AND videos on Business-API connections; on a video it plays at 50% over the original sound at 50%; mutually exclusive with `tiktokAutoAddMusic`, sending both is rejected; not applied when `tiktokIsDraft` is true), `tiktokMusicSoundName` (display-only label for the chosen sound, max 256 chars, never sent to TikTok; set it whenever the id is set). `tiktokAutoAddMusic` is photo posts only. `tiktokPrivacy` is **deprecated** (don't rely on it) |
 | **Instagram** | `instagramPublishType` (TIMELINE/STORY/REEL), `instagramPostToGrid`, `instagramCollaborators`, `instagramTrialReelStrategy`, `instagramLocationId`, `instagramLocationName`, `instagramIsAiGenerated` |
 | **Facebook** | `facebookContentType` (POST/REEL/STORY), `facebookReelsCollaborators`, `facebookPlaceId`, `facebookPlaceName`, `facebookTargetCountries`, `facebookCarouselMainLink` (2 to 10 images become a link carousel; per card `mediaLink`, `mediaCaption`, `mediaDescription` in `mediaItems`), `facebookCarouselShowEndCard` |
 | **YouTube** | `youtubeIsShort`, `youtubeTitle`, `youtubePrivacy`, `youtubePlaylistId`, `youtubeTags`, `youtubeMadeForKids`, `youtubeCategoryId`, `youtubeThumbnailKey`, `youtubeContainsSyntheticMedia`, `youtubeLanguage` (BCP-47 code), `youtubeCaptionKey` (an uploaded .srt or .vtt file; needs `youtubeLanguage`) |
@@ -922,7 +922,7 @@ POST /social-posts  { posts: [...], status: "DRAFT", controls: {} }
 
 # List posts (page is 0-based, limit max 50, filters AND-ed, unknown params ignored)
 GET /social-posts?page=0&limit=20
-GET /social-posts?page=0&limit=50&platforms=X,LINKEDIN&statuses=SCHEDULED&from=2026-06-01T00:00:00Z&to=2026-06-30T23:59:59Z
+GET /social-posts?page=0&limit=50&platforms=X,LINKEDIN&statuses=SCHEDULED&from=2027-02-01T00:00:00Z&to=2027-02-28T23:59:59Z
 GET /social-posts?socialMediaIds=ACCOUNT_ID_1,ACCOUNT_ID_2&statuses=SCHEDULED
 GET /social-posts?ids=POST_ID_1,POST_ID_2
 

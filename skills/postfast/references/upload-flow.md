@@ -65,7 +65,7 @@ curl -X POST https://api.postfa.st/social-posts \
           "sortOrder": 0
         }
       ],
-      "scheduledAt": "2026-06-15T10:00:00.000Z",
+      "scheduledAt": "2027-02-01T10:00:00.000Z",
       "socialMediaId": "ACCOUNT_ID"
     }],
     "controls": {}
@@ -103,7 +103,7 @@ Documents use a different flow, with `linkedinAttachmentKey` instead of `mediaIt
   "posts": [{
     "content": "Our Q1 playbook in 12 slides",
     "mediaItems": [],
-    "scheduledAt": "2026-06-15T10:00:00.000Z",
+    "scheduledAt": "2027-02-01T10:00:00.000Z",
     "socialMediaId": "LINKEDIN_ACCOUNT_ID"
   }],
   "controls": {
@@ -126,7 +126,7 @@ A caption file also goes in `controls`, not in `mediaItems`:
   "posts": [{
     "content": "Full tutorial with English captions",
     "mediaItems": [{ "key": "video/uuid.mp4", "type": "VIDEO", "sortOrder": 0 }],
-    "scheduledAt": "2026-12-15T14:00:00.000Z",
+    "scheduledAt": "2027-08-03T14:00:00.000Z",
     "socialMediaId": "YOUTUBE_ACCOUNT_ID"
   }],
   "controls": {

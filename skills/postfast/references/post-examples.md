@@ -573,7 +573,7 @@ curl -X POST "https://api.postfa.st/social-posts" \
     "posts": [
       {
         "content": "We just shipped automatic first comments via the API. Schedule a post, and your first comment drops ~10 seconds after it goes live.",
-        "firstComment": "Try it free for 7 days at postfa.st - works with X, Instagram, Facebook, YouTube, and Threads.",
+        "firstComment": "Try it free for 7 days. Works with X, Instagram, Facebook, YouTube, and Threads.",
         "scheduledAt": "2027-02-01T10:00:00.000Z",
         "socialMediaId": "440d7300-d18a-31c3-9605-335544330005"
       }
